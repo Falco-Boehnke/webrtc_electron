@@ -1,13 +1,12 @@
-// Servercode from here https://www.tutorialspoint.com/webrtc/webrtc_text_demo.htm
+// Weiter einfos https://www.tutorialspoint.com/webrtc/webrtc_text_demo.htm
 
-//require our websocket library 
 var WebSocketServer = require('ws').Server; 
 
 //creating a websocket server at port 9090 
 var wss = new WebSocketServer({host: '0.0.0.0', port: 9090});
 
 var connectedUsers = {};
-//when a user connects to our sever 
+//when a user connects to sever 
 wss.on('connection', function(connection) { 
    console.log("user connected: " + connection); 
 	
@@ -87,8 +86,8 @@ wss.on('connection', function(connection) {
 
             if(targetOfIceCandidate != null){
                 sendTo(targetOfIceCandidate, {
-                    type: "candidate",
-                    candidate: data.candidate
+                    type: "iceCandidate",
+                    Candidate: data.Candidate
                 });
             } 
             break;
