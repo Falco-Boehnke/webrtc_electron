@@ -27,10 +27,10 @@ wss.on('connection', function(connection) {
    {
        // login
         case "login":
-            console.log("User logged in: " + data.name);
-
+            console.log("User logged in: " + data.userName);
+            console.log("User: " + data.userName);
             // If user is already logged on the server, refuse
-            if(connectedUsers[data.name])
+            if(connectedUsers[data.userName])
             {
                 sendTo(connection, {
                     type: "login",
@@ -40,8 +40,8 @@ wss.on('connection', function(connection) {
             // else allow user to login and save connection in connectedusers
             else
             {
-                connectedUsers[data.name] = connection;
-                connection.name = data.name;
+                connectedUsers[data.userName] = connection;
+                connection.name = data.userName;
 
                 sendTo(connection, {
                     type: "login",
@@ -51,28 +51,28 @@ wss.on('connection', function(connection) {
             break;
         
         case "offer":
-            console.log("Sending offer to user: " + data.name);
+            console.log("Sending offer to user: " + data.userName);
             //if user exists, send him offer details
-            var userToSendOfferTo = connectedUsers[data.name];
+            var userToSendOfferTo = connectedUsers[data.userName];
 
             if(userToSendOfferTo != null)
             {
-                connection.otherName = data.name;
+                connection.otherName = data.userName;
                 sendTo(userToSendOfferTo, {
                     type: "offer",
                     offer: data.offer,
-                    name: connection.name
+                    userName: connection.userName
                 });
             }
             break;
         
         case "answer":
-            console.log("Sending answer to user: " + data.name);
+            console.log("Sending answer to user: " + data.userName);
 
-            var userToSendAnswerTo = connectedUsers[data.name];
+            var userToSendAnswerTo = connectedUsers[data.userName];
 
             if(connection != null){
-                connection.otherName = data.name;
+                connection.otherName = data.userName;
                 sendTo(userToSendAnswerTo, {
                     type: "answer",
                     answer: data.answer
@@ -81,8 +81,8 @@ wss.on('connection', function(connection) {
             break;
             
         case "iceCandidate":
-            console.log("Sending iceCandidate to: " + data.name);
-            var targetOfIceCandidate = connectedUsers[data.name];
+            console.log("Sending iceCandidate to: " + data.userName);
+            var targetOfIceCandidate = connectedUsers[data.userName];
 
             if(targetOfIceCandidate != null){
                 sendTo(targetOfIceCandidate, {
@@ -93,8 +93,8 @@ wss.on('connection', function(connection) {
             break;
 
         case "leave":
-            console.log("Disconnecting from: " + data.name);
-            var connToDisconnectFrom = connectedUsers[data.name];
+            console.log("Disconnecting from: " + data.userName);
+            var connToDisconnectFrom = connectedUsers[data.userName];
             connToDisconnectFrom.otherName = null;
             // notify user so he can disconnect peer connection
             if(connToDisconnectFrom != null){
@@ -114,9 +114,9 @@ wss.on('connection', function(connection) {
 });
 
     connection.on("close", function(){
-        if(connection.name)
+        if(connection.userName)
         {
-            delete connectedUsers[connection.name];
+            delete connectedUsers[connection.userName];
         
             if(connection.otherName)
             {

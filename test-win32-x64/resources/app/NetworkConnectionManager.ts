@@ -68,9 +68,9 @@ export class NetworkConnectionManager {
         );
 
         // Getting message from signaling server
-        console.log("Context: " + this);
         this.signalingConn.addEventListener('message',
-            (msg) => {             
+            (msg) => {
+                {
                     console.log("Got message" + msg.data);
                     let data = JSON.parse(msg.data);
 
@@ -97,7 +97,8 @@ export class NetworkConnectionManager {
 
                         default:
                             break;
-                    }            
+                    }
+                };
             });
 
         this.signalingConn.addEventListener('error', (err) => {
@@ -118,12 +119,10 @@ export class NetworkConnectionManager {
     };
 
     userNameAndSend() {
-        // TODO what the fuck
         console.log();
         console.log(this);
         console.log(UiElementHandler.login_nameInput);
-        console.log(document.getElementById("login_name"));
-        console.log();
+        console.log(UiElementHandler.login_nameInput.textContent);
         let username = UiElementHandler.login_nameInput.textContent;
         console.log("Sending Username: " + username);
         this.send({

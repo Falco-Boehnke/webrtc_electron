@@ -11,7 +11,6 @@ var NetworkConnectionManager = /** @class */ (function () {
         // when userName clicks the "send message" button 
         UiElementHandler_1.UiElementHandler.sendMsgButton.addEventListener("click", function () { return _this.sendChatMessageToUsers(); });
         UiElementHandler_1.UiElementHandler.signaling_submit.addEventListener("click", function () { return _this.getUrlAndCreateConnection(); });
-        this.userNameAndSend.bind(this);
         UiElementHandler_1.UiElementHandler.login_button.addEventListener("click", function () { return _this.userNameAndSend(); });
         UiElementHandler_1.UiElementHandler.connectToUserButton.addEventListener("click", function () { return _this.initiateCallToUser(); });
         UiElementHandler_1.UiElementHandler.disconnectButton.addEventListener("click", function () { return _this.disconnectFromChat(); });
@@ -53,30 +52,32 @@ var NetworkConnectionManager = /** @class */ (function () {
             console.log("Connected to the signaling server");
         });
         // Getting message from signaling server
-        console.log("Context: " + this);
         this.signalingConn.addEventListener('message', function (msg) {
-            console.log("Got message" + msg.data);
-            var data = JSON.parse(msg.data);
-            switch (data.type) {
-                case "login":
-                    _this.handleLogin(data.success);
-                    break;
-                case "offer":
-                    _this.handleOffer(data.offer, data.userName);
-                    break;
-                case "answer":
-                    _this.handleAnswer(data.answer);
-                    break;
-                //When remote peer gives us ice iceCandidates
-                case "iceCandidate":
-                    _this.handleIceCandidate(data.Candidate);
-                    break;
-                case "leave":
-                    _this.handleLeave();
-                    break;
-                default:
-                    break;
+            {
+                console.log("Got message" + msg.data);
+                var data = JSON.parse(msg.data);
+                switch (data.type) {
+                    case "login":
+                        _this.handleLogin(data.success);
+                        break;
+                    case "offer":
+                        _this.handleOffer(data.offer, data.userName);
+                        break;
+                    case "answer":
+                        _this.handleAnswer(data.answer);
+                        break;
+                    //When remote peer gives us ice iceCandidates
+                    case "iceCandidate":
+                        _this.handleIceCandidate(data.Candidate);
+                        break;
+                    case "leave":
+                        _this.handleLeave();
+                        break;
+                    default:
+                        break;
+                }
             }
+            ;
         });
         this.signalingConn.addEventListener('error', function (err) {
             console.log("Error happened" + err);
@@ -92,12 +93,10 @@ var NetworkConnectionManager = /** @class */ (function () {
     };
     ;
     NetworkConnectionManager.prototype.userNameAndSend = function () {
-        // TODO what the fuck
         console.log();
         console.log(this);
         console.log(UiElementHandler_1.UiElementHandler.login_nameInput);
-        console.log(document.getElementById("login_name"));
-        console.log();
+        console.log(UiElementHandler_1.UiElementHandler.login_nameInput.textContent);
         var username = UiElementHandler_1.UiElementHandler.login_nameInput.textContent;
         console.log("Sending Username: " + username);
         this.send({

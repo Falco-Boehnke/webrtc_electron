@@ -1,16 +1,16 @@
 // Researched some ideas here https://www.tutorialspoint.com/webrtc/webrtc_text_demo.htm
-let userName;
-let connectedUser;
+var name;
+var connectedUser;
 
-let signaling_url = <HTMLInputElement>document.getElementById('signaling_uri');
+let signaling_url = document.getElementById('signaling_uri');
 let signaling_submit = document.getElementById('submit_button');
-let login_nameInput = <HTMLInputElement>document.getElementById('login_name');
+let login_nameInput = document.getElementById('login_name');
 let login_button = document.getElementById('login_button');
-let msgInput = <HTMLInputElement>document.getElementById('msgInput');
-let chatbox = <HTMLInputElement>document.getElementById('chatbox');
+let msgInput = document.getElementById('msgInput');
+let chatbox = document.getElementById('chatbox');
 let sendMsgButton = document.getElementById('sendMessage');
 let connectToUserButton = document.getElementById('userConnect');
-let usernameToConnectTo = <HTMLInputElement>document.getElementById('connectToUsername');
+let usernameToConnectTo = document.getElementById('connectToUsername');
 let disconnectButton = document.getElementById('disconnectBtn');
 
 let signalingConn;
@@ -28,9 +28,9 @@ disconnectButton.addEventListener("click", function(){
 })
 
 
-// when userName clicks the "send message" button 
+// when user clicks the "send message" button 
 sendMsgButton.addEventListener("click", function (event) { 
-   let val = msgInput.value; 
+   var val = msgInput.value; 
    chatbox.innerHTML += " : " + val + "<br />"; 
     
    console.log("Datachannel send: " + dataChannel);
@@ -43,7 +43,7 @@ sendMsgButton.addEventListener("click", function (event) {
 
 function getUrlAndCreateConnection()
 {
-    let url = signaling_url.value;
+    var url = signaling_url.value;
     establishWebsocketConnection(url);
 }
 
@@ -61,7 +61,7 @@ function establishWebsocketConnection(url){
     // Getting message from signaling server
     signalingConn.onmessage = function (msg){
         console.log("Got message" + msg.data);
-        let data = JSON.parse(msg.data);
+        var data = JSON.parse(msg.data);
 
         switch(data.type)
         {
@@ -71,14 +71,14 @@ function establishWebsocketConnection(url){
                 break;
             
             case "offer":
-                handleOffer(data.offer, data.userName);
+                handleOffer(data.offer, data.name);
                 break;
             case "answer":
                 handleAnswer(data.answer);
                 break;
-            //When remote peer gives us ice iceCandidates
+            //When remote peer gives us ice candidates
             case "iceCandidate":
-                handleIceCandidate(data.Candidate);
+                handleIceCandidate(data.candidate);
                 break;
             case "leave":
                 handleLeave();
@@ -99,7 +99,7 @@ function send(message) {
 
    //attach the other peer username to our messages
    if (connectedUser) { 
-      message.userName = connectedUser; 
+      message.name = connectedUser; 
    } 
 	
    signalingConn.send(JSON.stringify(message)); 
@@ -107,10 +107,10 @@ function send(message) {
 
 function userNameAndSend()
 {
-    let username = login_nameInput.value;
+    var username = login_nameInput.value;
     send({
         type: "login",
-        userName: username
+        name: username
     });
 }
 
@@ -125,22 +125,22 @@ function handleLogin(success){
 
         // Google offers a public Stun, which is good because that means
         // we don't need to create a Stun server for Fudge
-        let configuration = { 
+        var configuration = { 
             "iceServers": [{ "url": "stun:stun2.1.google.com:19302" }] 
          };
+        console.log("Connection config: " + configuration);
 
-        localConn = new RTCPeerConnection();
-        localConn.iceServers = configuration;
-        console.log(localConn.iceServers);
+
+        localConn = new RTCPeerConnection(configuration);
         console.log(localConn);
         
         // Handling the ice better than GoT
-        localConn.oniceCandidate = function(event){
-            if(event.iceCandidate)
+        localConn.onicecandidate = function(event){
+            if(event.candidate)
             {
                 send({
                     type: "iceCandidate",
-                    Candidate: event.iceCandidate
+                    candidate: event.candidate
                 });
             }
         };
@@ -157,7 +157,7 @@ function handleLogin(success){
 
 function openDataChannel() {
 
-    let dataChannelOptions = {
+    var dataChannelOptions = {
     reliable:true
     };
     dataChannel = localConn.createDataChannel("myDataChannel", dataChannelOptions);
@@ -178,8 +178,8 @@ function openDataChannel() {
 
 function initiateCallToUser()
 {
-    console.log("Initiating call to userName" + usernameToConnectTo.value);
-    let callToUsername = usernameToConnectTo.value;
+    console.log("Initiating call to user" + usernameToConnectTo.value);
+    var callToUsername = usernameToConnectTo.value;
 
     if(callToUsername.length > 0)
     {
@@ -201,9 +201,9 @@ function initiateCallToUser()
 }
 
 //when somebody sends us an offer 
-function handleOffer(offer, userName) { 
-    console.log("Handling received offer: " + offer + " " + userName)
-    connectedUser = userName; 
+function handleOffer(offer, name) { 
+    console.log("Handling received offer: " + offer + " " + name)
+    connectedUser = name; 
     localConn.setRemoteDescription(new RTCSessionDescription(offer));
      
     //create an answer to an offer 
@@ -227,13 +227,13 @@ function handleAnswer(answer)
     localConn.setRemoteDescription(new RTCSessionDescription(answer));
 }
 
-function handleIceCandidate(Candidate)
+function handleIceCandidate(candidate)
 {
-    localConn.addIceCandidate(new RTCIceCandidate(Candidate));
+    localConn.addIceCandidate(new RTCIceCandidate(candidate));
 }
 
 function handleLeave(){
     connectedUser = null;
     localConn.close();
-    localConn.oniceCandidate = null;
+    localConn.onicecandidate = null;
 }

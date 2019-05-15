@@ -12,6 +12,7 @@
     Enter Signaling server URL:
     <input id="signaling_uri" type="text" value="localhost:9090"></input>
     <button id="submit_button">Connect</button>
+    <button id="test_button">test</button>
   </div>
   <div>
     <input id="login_name" type="text" value="Namen eingeben"></input>
@@ -29,6 +30,8 @@
   </div>
 
   <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+
   <script>require('./renderer.js')</script>
+  <script>require('./NetworkConnectionManager.js')</script>
 </body>
 </html>
