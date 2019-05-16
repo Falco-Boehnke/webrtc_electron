@@ -1,77 +1,72 @@
-"use strict";
-exports.__esModule = true;
-var UiElementHandler_1 = require("./UiElementHandler");
-var NetworkConnectionManager = /** @class */ (function () {
-    function NetworkConnectionManager() {
-        UiElementHandler_1.UiElementHandler.getAllUiElements();
+import { UiElementHandler } from "./UiElementHandler";
+export class NetworkConnectionManager {
+    constructor() {
+        UiElementHandler.getAllUiElements();
         this.addEventListenersToUiElements();
     }
-    NetworkConnectionManager.prototype.addEventListenersToUiElements = function () {
-        var _this = this;
+    addEventListenersToUiElements() {
         // when userName clicks the "send message" button 
-        UiElementHandler_1.UiElementHandler.sendMsgButton.addEventListener("click", function () { return _this.sendChatMessageToUsers(); });
-        UiElementHandler_1.UiElementHandler.signaling_submit.addEventListener("click", function () { return _this.getUrlAndCreateConnection(); });
-        UiElementHandler_1.UiElementHandler.login_button.addEventListener("click", function () { return _this.userNameAndSend(); });
-        UiElementHandler_1.UiElementHandler.connectToUserButton.addEventListener("click", function () { return _this.initiateCallToUser(); });
-        UiElementHandler_1.UiElementHandler.disconnectButton.addEventListener("click", function () { return _this.disconnectFromChat(); });
+        UiElementHandler.sendMsgButton.addEventListener("click", () => this.sendChatMessageToUsers());
+        UiElementHandler.signaling_submit.addEventListener("click", () => this.getUrlAndCreateConnection());
+        UiElementHandler.login_button.addEventListener("click", () => this.userNameAndSend());
+        UiElementHandler.connectToUserButton.addEventListener("click", () => this.initiateCallToUser());
+        UiElementHandler.disconnectButton.addEventListener("click", () => this.disconnectFromChat());
         //document.getElementById('sendMessage').addEventListener("click", () => this.sendChatMessageToUsers());
         // document.getElementById('submit_button').addEventListener("click", () => this.getUrlAndCreateConnection());
         // document.getElementById('login_button').addEventListener("click", () => this.userNameAndSend());
         // document.getElementById('userConnect').addEventListener("click", () => this.initiateCallToUser());
         // document.getElementById('disconnectBtn').addEventListener("click", () => this.disconnectFromChat());
-    };
-    NetworkConnectionManager.prototype.disconnectFromChat = function () {
+    }
+    disconnectFromChat() {
         this.send({
             type: "leave"
         });
         this.handleLeave();
-    };
-    NetworkConnectionManager.prototype.sendChatMessageToUsers = function () {
-        var val = UiElementHandler_1.UiElementHandler.msgInput.textContent;
-        UiElementHandler_1.UiElementHandler.chatbox.textContent += " : " + val + "<br />";
+    }
+    sendChatMessageToUsers() {
+        let val = UiElementHandler.msgInput.textContent;
+        UiElementHandler.chatbox.textContent += " : " + val + "<br />";
         console.log("Datachannel send: " + this.dataChannel);
         this.dataChannel.send(val);
         //sending a message to a connected peer 
         console.log();
-        UiElementHandler_1.UiElementHandler.msgInput.textContent = "";
-    };
-    NetworkConnectionManager.prototype.getUrlAndCreateConnection = function () {
-        var _this = this;
-        var url = UiElementHandler_1.UiElementHandler.signaling_url.value;
+        UiElementHandler.msgInput.textContent = "";
+    }
+    getUrlAndCreateConnection() {
+        let url = UiElementHandler.signaling_url.value;
         console.log(url);
         this.establishWebsocketConnection(url);
-        (function () { return _this.establishWebsocketConnection; });
-    };
-    NetworkConnectionManager.prototype.establishWebsocketConnection = function (url) {
-        var _this = this;
+        () => this.establishWebsocketConnection;
+    }
+    establishWebsocketConnection(url) {
         console.log("Attemtping to connect to server: ");
         this.signalingConn = new WebSocket('ws://' + url);
         ///////////////////////////////
         ///// Event handling block/////
-        this.signalingConn.addEventListener('open', function () {
+        this.signalingConn.addEventListener('open', () => {
             console.log("Connected to the signaling server");
         });
         // Getting message from signaling server
-        this.signalingConn.addEventListener('message', function (msg) {
+        this.signalingConn.addEventListener('message', (msg) => {
             {
                 console.log("Got message" + msg.data);
-                var data = JSON.parse(msg.data);
+                let data = JSON.parse(msg.data);
                 switch (data.type) {
                     case "login":
-                        _this.handleLogin(data.success);
+                        this.handleLogin(data.success);
                         break;
                     case "offer":
-                        _this.handleOffer(data.offer, data.userName);
+                        this.handleOffer(data.offer, data.userName);
                         break;
                     case "answer":
-                        _this.handleAnswer(data.answer);
+                        this.handleAnswer(data.answer);
                         break;
                     //When remote peer gives us ice iceCandidates
                     case "iceCandidate":
-                        _this.handleIceCandidate(data.Candidate);
+                        this.handleIceCandidate(data.Candidate);
                         break;
                     case "leave":
-                        _this.handleLeave();
+                        this.handleLeave();
                         break;
                     default:
                         break;
@@ -79,33 +74,32 @@ var NetworkConnectionManager = /** @class */ (function () {
             }
             ;
         });
-        this.signalingConn.addEventListener('error', function (err) {
+        this.signalingConn.addEventListener('error', (err) => {
             console.log("Error happened" + err);
         });
-    };
+    }
     //alias for sending JSON encoded messages 
-    NetworkConnectionManager.prototype.send = function (message) {
+    send(message) {
         //attach the other peer username to our messages
         if (this.connectedUser) {
             message.userName = this.connectedUser;
         }
         this.signalingConn.send(JSON.stringify(message));
-    };
+    }
     ;
-    NetworkConnectionManager.prototype.userNameAndSend = function () {
+    userNameAndSend() {
         console.log();
         console.log(this);
-        console.log(UiElementHandler_1.UiElementHandler.login_nameInput);
-        console.log(UiElementHandler_1.UiElementHandler.login_nameInput.textContent);
-        var username = UiElementHandler_1.UiElementHandler.login_nameInput.textContent;
+        console.log(UiElementHandler.login_nameInput);
+        console.log(UiElementHandler.login_nameInput.textContent);
+        let username = UiElementHandler.login_nameInput.textContent;
         console.log("Sending Username: " + username);
         this.send({
             type: "login",
             userName: username
         });
-    };
-    NetworkConnectionManager.prototype.handleLogin = function (success) {
-        var _this = this;
+    }
+    handleLogin(success) {
         if (success == false) {
             console.log("Username taken, refresh");
             return;
@@ -115,7 +109,7 @@ var NetworkConnectionManager = /** @class */ (function () {
         {
             // Google offers a public Stun, which is good because that means
             // we don't need to create a Stun server for Fudge
-            var configuration = {
+            let configuration = {
                 "iceServers": [{ "url": "stun:stun2.1.google.com:19302" }]
             };
             console.log("Connection config: " + configuration);
@@ -123,28 +117,28 @@ var NetworkConnectionManager = /** @class */ (function () {
             this.localConn.iceServers = configuration;
             console.log(this.localConn);
             // Handling the ice better than GoT
-            this.localConn.addEventListener('icecandidate', function (event) {
+            this.localConn.addEventListener('icecandidate', (event) => {
                 console.log("IceCandidate event called");
                 if (event.iceCandidate) {
-                    _this.send({
+                    this.send({
                         type: "iceCandidate",
                         Candidate: event.iceCandidate
                     });
                 }
             });
-            this.localConn.addEventListener('iceconnectionstatechange', function (event) {
-                console.log(_this.localConn.iceConnectionState);
+            this.localConn.addEventListener('iceconnectionstatechange', (event) => {
+                console.log(this.localConn.iceConnectionState);
             });
-            this.localConn.addEventListener('datachannel', function (event) {
+            this.localConn.addEventListener('datachannel', (event) => {
                 console.log('Data channel is created!');
-                event.channel.addEventListener('open', function () {
+                event.channel.addEventListener('open', () => {
                     console.log('Data channel is open and ready to be used.');
                 });
             });
         }
-    };
-    NetworkConnectionManager.prototype.openDataChannel = function () {
-        var dataChannelOptions = {
+    }
+    openDataChannel() {
+        let dataChannelOptions = {
             reliable: true
         };
         this.dataChannel = this.localConn.createDataChannel("myDataChannel", dataChannelOptions);
@@ -158,10 +152,10 @@ var NetworkConnectionManager = /** @class */ (function () {
         this.dataChannel.onopen = function () {
             console.log("channel opened");
         };
-    };
-    NetworkConnectionManager.prototype.initiateCallToUser = function () {
+    }
+    initiateCallToUser() {
         console.log("Initiating call to userName" + document.getElementById('connectToUsername').textContent);
-        var callToUsername = document.getElementById('connectToUsername').textContent;
+        let callToUsername = document.getElementById('connectToUsername').textContent;
         if (callToUsername.length > 0) {
             this.connectedUser = callToUsername;
             this.localConn.createOffer(function (offer) {
@@ -175,9 +169,9 @@ var NetworkConnectionManager = /** @class */ (function () {
             });
             this.openDataChannel();
         }
-    };
+    }
     //when somebody sends us an offer 
-    NetworkConnectionManager.prototype.handleOffer = function (offer, userName) {
+    handleOffer(offer, userName) {
         console.log("Handling received offer: " + offer + " " + userName);
         this.connectedUser = userName;
         this.localConn.setRemoteDescription(new RTCSessionDescription(offer));
@@ -191,21 +185,20 @@ var NetworkConnectionManager = /** @class */ (function () {
         }, function (error) {
             console.error("Error creating answer: " + error);
         });
-    };
+    }
     ;
     // What to do with an answer
-    NetworkConnectionManager.prototype.handleAnswer = function (answer) {
+    handleAnswer(answer) {
         console.log("Handling Answer");
         this.localConn.setRemoteDescription(new RTCSessionDescription(answer));
-    };
-    NetworkConnectionManager.prototype.handleIceCandidate = function (Candidate) {
+    }
+    handleIceCandidate(Candidate) {
         this.localConn.addIceCandidate(new RTCIceCandidate(Candidate));
-    };
-    NetworkConnectionManager.prototype.handleLeave = function () {
+    }
+    handleLeave() {
         this.connectedUser = null;
         this.localConn.close();
         this.localConn.oniceCandidate = null;
-    };
-    return NetworkConnectionManager;
-}());
-exports.NetworkConnectionManager = NetworkConnectionManager;
+    }
+}
+//# sourceMappingURL=NetworkConnectionManager.js.map

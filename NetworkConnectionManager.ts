@@ -111,6 +111,7 @@ export class NetworkConnectionManager {
     }
 
     public userNameAndSend = (): void => {
+        console.log("FUCK");
         const username = UiElementHandler.login_nameInput.value;
         console.log("Sending Username: " + username);
         this.send({

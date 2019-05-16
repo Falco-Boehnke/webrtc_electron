@@ -1,9 +1,5 @@
-"use strict";
-exports.__esModule = true;
-var UiElementHandler = /** @class */ (function () {
-    function UiElementHandler() {
-    }
-    UiElementHandler.getAllUiElements = function () {
+export class UiElementHandler {
+    static getAllUiElements() {
         UiElementHandler.signaling_url = document.getElementById('signaling_uri');
         UiElementHandler.signaling_submit = document.getElementById('submit_button');
         UiElementHandler.login_nameInput = document.getElementById('login_name');
@@ -14,7 +10,6 @@ var UiElementHandler = /** @class */ (function () {
         UiElementHandler.connectToUserButton = document.getElementById('userConnect');
         UiElementHandler.usernameToConnectTo = document.getElementById('connectToUsername');
         UiElementHandler.disconnectButton = document.getElementById('disconnectBtn');
-    };
-    return UiElementHandler;
-}());
-exports.UiElementHandler = UiElementHandler;
+    }
+}
+//# sourceMappingURL=UiElementHandler.js.map
