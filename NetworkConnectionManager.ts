@@ -111,11 +111,7 @@ export class NetworkConnectionManager {
     }
 
     public userNameAndSend = (): void => {
-        // TODO what the frack
-        console.log();
-        console.log("UserNameAndSend Context: " + this);
-        console.log(UiElementHandler.login_nameInput);
-        const username = UiElementHandler.login_nameInput.textContent;
+        const username = UiElementHandler.login_nameInput.value;
         console.log("Sending Username: " + username);
         this.send({
             type: "login",

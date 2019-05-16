@@ -61,9 +61,10 @@ var NetworkConnectionManager = /** @class */ (function () {
         this.userNameAndSend = function () {
             // TODO what the frack
             console.log();
-            console.log("UserNameAndSend Context: " + _this);
+            console.log("UserNameAndSend Context: ", _this);
+            console.log(_this);
             console.log(UiElementHandler_1.UiElementHandler.login_nameInput);
-            var username = UiElementHandler_1.UiElementHandler.login_nameInput.textContent;
+            var username = UiElementHandler_1.UiElementHandler.login_nameInput.value;
             console.log("Sending Username: " + username);
             _this.send({
                 type: "login",
