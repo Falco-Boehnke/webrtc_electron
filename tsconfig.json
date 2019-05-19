@@ -6,5 +6,12 @@
     },
     "exclude": [
         "node_modules"
+    ],
+    "files": [
+        "index.ts",
+        "renderer.ts",
+        "NetworkConnectionManager.ts",
+        "UiElementHandler.ts",
+
     ]
 }

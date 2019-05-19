@@ -59,7 +59,6 @@ var NetworkConnectionManager = /** @class */ (function () {
             }
         };
         this.userNameAndSend = function () {
-            console.log("FUCK");
             var username = UiElementHandler_1.UiElementHandler.login_nameInput.value;
             console.log("Sending Username: " + username);
             _this.send({
@@ -93,9 +92,9 @@ var NetworkConnectionManager = /** @class */ (function () {
     };
     NetworkConnectionManager.prototype.handleLogin = function (success) {
         var _this = this;
-        if (success) {
+        console.log("TRUST IN THHE LAWD", success);
+        if (success === false) {
             console.log("Username taken, refresh");
-            return;
         }
         else {
             // Google offers a public Stun, which is good because that means

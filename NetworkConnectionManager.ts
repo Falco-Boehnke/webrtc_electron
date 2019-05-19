@@ -111,7 +111,6 @@ export class NetworkConnectionManager {
     }
 
     public userNameAndSend = (): void => {
-        console.log("FUCK");
         const username = UiElementHandler.login_nameInput.value;
         console.log("Sending Username: " + username);
         this.send({
@@ -121,9 +120,10 @@ export class NetworkConnectionManager {
     }
 
     public handleLogin(success) {
-        if (success) {
+        console.log("TRUST IN THHE LAWD", success);
+        
+        if (success === false) {
             console.log("Username taken, refresh");
-            return;
         } else {
 
             // Google offers a public Stun, which is good because that means
