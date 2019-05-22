@@ -5,7 +5,8 @@
         "sourceMap": true
     },
     "exclude": [
-        "node_modules"
+        "node_modules",
+        "tslint"
     ],
     "files": [
         "index.ts",

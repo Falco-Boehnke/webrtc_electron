@@ -12,11 +12,12 @@
     "bootstrap": "^4.3.1",
     "node-static": "^0.7.10",
     "socket.io": "^1.2.0",
-    "websocketserver": "^1.0.0"
-  },
-  "devDependencies": {
-    "electron": "^5.0.0",
+    "websocketserver": "^1.0.0",
+
     "tslint": "^5.16.0",
     "typescript": "^3.4.5"
+  },
+  "devDependencies": {
+    "electron": "^5.0.0"
   }
 }
