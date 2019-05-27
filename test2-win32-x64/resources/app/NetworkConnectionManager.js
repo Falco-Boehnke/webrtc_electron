@@ -143,10 +143,18 @@ var NetworkConnectionManager = /** @class */ (function () {
             UiElementHandler_1.UiElementHandler.chatbox.innerHTML += "\n" + _this.username + ": " + message;
             _this.peerConnection.send(message);
         };
-        this.ws = new WebSocket("ws://localhost:8080");
         this.addUiListeners();
-        this.addWsEventListeners();
     }
+    NetworkConnectionManager.prototype.createWebsocketForSignaling = function (signalingUrl) {
+        try {
+            this.ws = new WebSocket("ws://" + signalingUrl);
+        }
+        catch (error) {
+            console.log("Signaling-Server Verbindungsfehler. Serverstatus prüfen, URL überprüfen");
+            return;
+        }
+        this.addWsEventListeners();
+    };
     return NetworkConnectionManager;
 }());
 exports.NetworkConnectionManager = NetworkConnectionManager;

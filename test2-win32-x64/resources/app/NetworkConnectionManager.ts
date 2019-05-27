@@ -12,9 +12,9 @@ export class NetworkConnectionManager {
     };
 
     constructor() {
-        this.ws = new WebSocket("ws://localhost:8080");
+
         this.addUiListeners();
-        this.addWsEventListeners();
+
     }
 
     public addUiListeners = (): void => {
@@ -54,6 +54,18 @@ export class NetworkConnectionManager {
         });
     }
 
+public createWebsocketForSignaling(signalingUrl: string) {
+    try
+    {
+        this.ws = new WebSocket("ws://" + signalingUrl);
+    } catch(error)
+    {
+        console.log("Signaling-Server Verbindungsfehler. Serverstatus prüfen, URL überprüfen");
+        return;
+    }
+    this.addWsEventListeners();
+}
+
     public handleCandidate = (candidate) => {
         this.connection.addIceCandidate(new RTCIceCandidate(candidate));
     }
@@ -71,7 +83,7 @@ export class NetworkConnectionManager {
                 this.sendMessage({
                     type: "answer",
                     otherUsername: this.otherUsername,
-                    answer
+                    answer,
                 });
             },
             (error) => {
@@ -146,7 +158,7 @@ export class NetworkConnectionManager {
 
         // const callUsernameElement =  document.querySelector("input#username-to-call") as HTMLInputElement;
         // const callToUsername = callUsernameElement.value;
-        let callToUsername = UiElementHandler.usernameToConnectTo.value;
+        const callToUsername = UiElementHandler.usernameToConnectTo.value;
         if (callToUsername.length === 0) {
             alert("Enter a username 😉");
             return;
@@ -159,7 +171,7 @@ export class NetworkConnectionManager {
                 this.sendMessage({
                     type: "offer",
                     otherUsername: this.otherUsername,
-                    offer
+                    offer,
                 });
 
                 this.connection.setLocalDescription(offer);
