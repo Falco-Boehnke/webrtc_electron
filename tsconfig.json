@@ -5,6 +5,14 @@
         "sourceMap": true
     },
     "exclude": [
-        "node_modules"
+        "node_modules",
+        "tslint"
+    ],
+    "files": [
+        "index.ts",
+        "renderer.ts",
+        "NetworkConnectionManager.ts",
+        "DataObjects/UiElementHandler.ts",
+
     ]
 }
