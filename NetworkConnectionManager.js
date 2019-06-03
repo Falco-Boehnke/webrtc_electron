@@ -1,12 +1,13 @@
 "use strict";
 exports.__esModule = true;
-var UiElementHandler_1 = require("./UiElementHandler");
+var UiElementHandler_1 = require("./DataObjects/UiElementHandler");
 var NetworkConnectionManager = /** @class */ (function () {
     function NetworkConnectionManager() {
         var _this = this;
         this.configuration = {
             iceServers: [{ url: "stun:stun2.1.google.com:19302" }]
         };
+        //#region test
         this.addUiListeners = function () {
             UiElementHandler_1.UiElementHandler.login_button.addEventListener("click", _this.loginLogic);
             UiElementHandler_1.UiElementHandler.connectToUserButton.addEventListener("click", _this.connectToUser);
@@ -19,12 +20,14 @@ var NetworkConnectionManager = /** @class */ (function () {
             _this.ws.addEventListener("error", function (err) {
                 console.error(err);
             });
+            //#endregion
             _this.ws.addEventListener("message", function (msg) {
                 console.log("Got message", msg.data);
                 var data = JSON.parse(msg.data);
                 switch (data.type) {
                     case "login":
                         _this.handleLogin(data.success);
+                        _this.requestId();
                         break;
                     case "offer":
                         _this.handleOffer(data.offer, data.username);
@@ -35,8 +38,14 @@ var NetworkConnectionManager = /** @class */ (function () {
                     case "candidate":
                         _this.handleCandidate(data.candidate);
                         break;
+                    case "requestedId":
+                        _this.handleRequestedId(data.id);
                 }
             });
+        };
+        this.handleRequestedId = function (id) {
+            console.log("Id received: " + id);
+            _this.id = id;
         };
         this.handleCandidate = function (candidate) {
             _this.connection.addIceCandidate(new RTCIceCandidate(candidate));
@@ -70,8 +79,6 @@ var NetworkConnectionManager = /** @class */ (function () {
             }
         };
         this.loginLogic = function (event) {
-            // this.usernameField =  document.getElementById("username") as HTMLInputElement;
-            // this.username = this.usernameField.value;
             _this.username = UiElementHandler_1.UiElementHandler.login_nameInput.value;
             console.log(_this.username);
             if (_this.username.length < 0) {
@@ -154,6 +161,12 @@ var NetworkConnectionManager = /** @class */ (function () {
             return;
         }
         this.addWsEventListeners();
+    };
+    NetworkConnectionManager.prototype.requestId = function () {
+        console.log("Requesting ID");
+        this.sendMessage({
+            type: "idRequest"
+        });
     };
     return NetworkConnectionManager;
 }());

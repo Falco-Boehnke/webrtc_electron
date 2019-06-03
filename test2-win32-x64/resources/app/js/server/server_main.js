@@ -71,7 +71,8 @@ wss.on('connection', ws => {
     })
 
     ws.on('close', () => {
-        //handle closing
+        delete users[ws.username];
+        ws.close();
     })
 })
 

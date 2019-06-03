@@ -29,6 +29,8 @@
     <button id="sendMessage">Send</button>
   </div>
 
+  <input onchange="addFiles(this.files)" type="file" id="files" name="files[]" multiple>
+
   <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
 
   <script>require('./renderer.js')</script>

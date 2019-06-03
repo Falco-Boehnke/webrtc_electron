@@ -54,17 +54,15 @@ export class NetworkConnectionManager {
         });
     }
 
-public createWebsocketForSignaling(signalingUrl: string) {
-    try
-    {
-        this.ws = new WebSocket("ws://" + signalingUrl);
-    } catch(error)
-    {
-        console.log("Signaling-Server Verbindungsfehler. Serverstatus prüfen, URL überprüfen");
-        return;
+    public createWebsocketForSignaling(signalingUrl: string) {
+        try {
+            this.ws = new WebSocket("ws://" + signalingUrl);
+        } catch (error) {
+            console.log("Signaling-Server Verbindungsfehler. Serverstatus prüfen, URL überprüfen");
+            return;
+        }
+        this.addWsEventListeners();
     }
-    this.addWsEventListeners();
-}
 
     public handleCandidate = (candidate) => {
         this.connection.addIceCandidate(new RTCIceCandidate(candidate));
@@ -104,9 +102,6 @@ public createWebsocketForSignaling(signalingUrl: string) {
     }
 
     public loginLogic = (event): void => {
-        // this.usernameField =  document.getElementById("username") as HTMLInputElement;
-        // this.username = this.usernameField.value;
-
         this.username = UiElementHandler.login_nameInput.value;
         console.log(this.username);
         if (this.username.length < 0) {
@@ -138,7 +133,7 @@ public createWebsocketForSignaling(signalingUrl: string) {
             });
         };
 
-        this.peerConnection.onmessage = function(event) {
+        this.peerConnection.onmessage = function (event) {
             console.log("Received message from other peer:", event.data);
             document.getElementById("chatbox").innerHTML += "<br>" + event.data;
         };

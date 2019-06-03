@@ -1,9 +1,9 @@
-import { UiElementHandler } from "./UiElementHandler";
+import { UiElementHandler } from "./DataObjects/UiElementHandler";
 
 export class NetworkConnectionManager {
     public ws;
     public username;
-    public usernameField;
+    public id;
     public connection;
     public otherUsername;
     public peerConnection;
@@ -16,7 +16,7 @@ export class NetworkConnectionManager {
         this.addUiListeners();
 
     }
-
+//#region test
     public addUiListeners = (): void => {
         UiElementHandler.login_button.addEventListener("click", this.loginLogic);
         UiElementHandler.connectToUserButton.addEventListener("click", this.connectToUser);
@@ -30,7 +30,7 @@ export class NetworkConnectionManager {
         this.ws.addEventListener("error", (err) => {
             console.error(err);
         });
-
+//#endregion
         this.ws.addEventListener("message", (msg) => {
             console.log("Got message", msg.data);
 
@@ -39,6 +39,7 @@ export class NetworkConnectionManager {
             switch (data.type) {
                 case "login":
                     this.handleLogin(data.success);
+                    this.requestId();
                     break;
 
                 case "offer":
@@ -50,21 +51,33 @@ export class NetworkConnectionManager {
                 case "candidate":
                     this.handleCandidate(data.candidate);
                     break;
+                case "requestedId":
+                    this.handleRequestedId(data.id);
             }
         });
     }
 
-public createWebsocketForSignaling(signalingUrl: string) {
-    try
-    {
-        this.ws = new WebSocket("ws://" + signalingUrl);
-    } catch(error)
-    {
-        console.log("Signaling-Server Verbindungsfehler. Serverstatus prüfen, URL überprüfen");
-        return;
+    public createWebsocketForSignaling(signalingUrl: string) {
+        try {
+            this.ws = new WebSocket("ws://" + signalingUrl);
+        } catch (error) {
+            console.log("Signaling-Server Verbindungsfehler. Serverstatus prüfen, URL überprüfen");
+            return;
+        }
+        this.addWsEventListeners();
     }
-    this.addWsEventListeners();
-}
+
+    public requestId() {
+        console.log("Requesting ID");
+        this.sendMessage({
+            type: "idRequest",
+        });
+    }
+    public handleRequestedId = (id: string): void =>
+    {
+        console.log("Id received: " + id);
+        this.id = id;
+    }
 
     public handleCandidate = (candidate) => {
         this.connection.addIceCandidate(new RTCIceCandidate(candidate));
@@ -93,6 +106,8 @@ public createWebsocketForSignaling(signalingUrl: string) {
         );
     }
 
+
+
     public handleLogin = (loginSuccess): void => {
         if (loginSuccess) {
             console.log("Login succesfully done");
@@ -104,9 +119,6 @@ public createWebsocketForSignaling(signalingUrl: string) {
     }
 
     public loginLogic = (event): void => {
-        // this.usernameField =  document.getElementById("username") as HTMLInputElement;
-        // this.username = this.usernameField.value;
-
         this.username = UiElementHandler.login_nameInput.value;
         console.log(this.username);
         if (this.username.length < 0) {
@@ -138,7 +150,7 @@ public createWebsocketForSignaling(signalingUrl: string) {
             });
         };
 
-        this.peerConnection.onmessage = function(event) {
+        this.peerConnection.onmessage = function (event) {
             console.log("Received message from other peer:", event.data);
             document.getElementById("chatbox").innerHTML += "<br>" + event.data;
         };

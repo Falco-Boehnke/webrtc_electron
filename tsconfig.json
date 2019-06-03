@@ -12,7 +12,7 @@
         "index.ts",
         "renderer.ts",
         "NetworkConnectionManager.ts",
-        "UiElementHandler.ts",
+        "DataObjects/UiElementHandler.ts",
 
     ]
 }
