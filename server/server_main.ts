@@ -4,15 +4,15 @@ let testSocket = require("ws");
 // Fucked up, need to use client.Client() To create a client, otherwise error
 let client = require("./../DataObjects/Client");
 let wss = new testSocket.Server({ port: 8080 });
-let users = {};
 let availableRooms = {};
+let usersCollection = new Array();
 
 wss.on("connection", (clientToServerWebsocket) => {
     console.log("User connected FRESH");
 
     const uniqueIdOnConnection = createID();
     const freshlyConnectedClient = new client.Client(clientToServerWebsocket, uniqueIdOnConnection);
-    users[clientToServerWebsocket] = freshlyConnectedClient;
+    usersCollection.push(freshlyConnectedClient);
 
     clientToServerWebsocket.on("message", (message) => {
         let data = null;
@@ -22,52 +22,69 @@ wss.on("connection", (clientToServerWebsocket) => {
             console.error("Invalid JSON", error);
             data = {};
         }
-
+        let otherUser = null;
         switch (data.type) {
             case "login":
                 let usernameTaken: boolean = false;
 
-                for (let clientAlreadyConnected in users) {
-                    if (users.hasOwnProperty(clientAlreadyConnected)) {
-                        if (users[clientAlreadyConnected].userName === data.username) {
-                            if (users[clientToServerWebsocket].userName != null || "") {
-                                sendTo(clientToServerWebsocket, { type: "login", success: false });
-                                usernameTaken = true;
-                                return;
-                            }
+                for (const currentClient in usersCollection) {
+                    if (usersCollection.hasOwnProperty(currentClient)) {
+                        if (data.username === usersCollection[currentClient].userName) {
+                            sendTo(clientToServerWebsocket, { type: "login", success: false });
+                            usernameTaken = true;
+                            console.log("UsernameTaken");
                         }
                     }
                 }
                 if (!usernameTaken) {
-                    users[clientToServerWebsocket].userName = data.username;
-                    sendTo(clientToServerWebsocket, { type: "login", success: true });
-                    console.log(users[clientToServerWebsocket]);
+                    for (const currentClient in usersCollection) {
+                        if (usersCollection.hasOwnProperty(currentClient)) {
+                            if (clientToServerWebsocket === usersCollection[currentClient].clientConnection) {
+                                usersCollection[currentClient].userName = data.username;
+                                console.log("Added username to collection");
+                                console.log("All connected users", usersCollection);
+                                sendTo(clientToServerWebsocket,
+                                    {
+                                        type: "login",
+                                        success: true,
+                                        id : usersCollection[currentClient].id },
+                                    );
+                            }
+                        }
+                    }
+                    
                 }
-                // }
                 break;
-
 
             case "offer":
                 console.log("Sending offer to: ", data.otherUsername);
 
-                let otherUser = null;
-
-                for (let userWithThatName in users) {
-                    if (users.hasOwnProperty(userWithThatName)) {
-                        console.log("Other USername: " + data.otherUsername);
-                        console.log("Also Other Username: " + users[userWithThatName].userName);
-                        if (users[userWithThatName].userName === data.otherUsername) {
-                            otherUser = users[userWithThatName];
-                            console.log("User " + users[userWithThatName].userName + " exists");
-                            return;
+                for (const currentClient in usersCollection) {
+                    if (usersCollection.hasOwnProperty(currentClient)) {
+                        console.log("Testlog otherusername" + data.otherUsername);
+                        console.log("Testlot usercollection ", usersCollection[currentClient]);
+                        console.log("Testslot bool" + data.otherUsername === usersCollection[currentClient].userName);
+                        if (data.otherUsername === usersCollection[currentClient].userName) {
+                            console.log("User for offer found", currentClient);
+                            // otherUser = users[currentClient];
                         }
                     }
                 }
-
+                //#region backup
+                // for (let userWithThatName in users) {
+                //     if (users.hasOwnProperty(userWithThatName)) {
+                //         if (users[userWithThatName].userName === data.otherUsername) {
+                //             otherUser = users[userWithThatName];
+                //             console.log("User " + users[userWithThatName].userName + " exists");
+                //             return;
+                //         }
+                //     }
+                // }
+                //#endregion
                 if (otherUser != null) {
                     clientToServerWebsocket.otherUsername = data.otherUsername;
 
-                    sendTo(users[data.otherUsername], {
+                    sendTo(otherUser.clientConnection, {
                         type: "offer",
                         offer: data.offer,
                         username: clientToServerWebsocket.username,
@@ -78,42 +95,51 @@ wss.on("connection", (clientToServerWebsocket) => {
                 break;
             case "answer":
                 console.log("Sending answer to: ", data.otherUsername);
-                if (users[data.otherUsername] != null) {
-                    clientToServerWebsocket.otherUsername = data.otherUsername;
-                    sendTo(users[data.otherUsername], {
-                        type: "answer",
-                        answer: data.answer,
-                    });
-                }
+                // if (users[data.otherUsername] != null) {
+                //     clientToServerWebsocket.otherUsername = data.otherUsername;
+                //     sendTo(users[data.otherUsername], {
+                //         type: "answer",
+                //         answer: data.answer,
+                //     });
+                // }
                 break;
             case "candidate":
                 console.log("Sending candidate to:", data.otherUsername);
-                if (users[data.otherUsername] != null) {
-                    sendTo(users[data.otherUsername], {
-                        type: "candidate",
-                        candidate: data.candidate,
-                    });
-                }
+                // if (users[data.otherUsername] != null) {
+                //     sendTo(users[data.otherUsername], {
+                //         type: "candidate",
+                //         candidate: data.candidate,
+                //     });
+                // }
+                // for (const userWithThatName in users) {
+                //     if (users.hasOwnProperty(userWithThatName)) {
+                //         console.log("Also Other Username: " + users[userWithThatName].userName);
+                //         if (users[userWithThatName].userName === data.otherUsername) {
+                //             otherUser = users[userWithThatName];
+                //             console.log("User " + users[userWithThatName].userName + " exists");
+                //             return;
+                //         }
+                //     }
+                // }
+
                 break;
             case "idRequest":
 
-                let id = "";
-                console.log("Generation and sending ID to User " + users[clientToServerWebsocket].userName);
-
-                if (users[clientToServerWebsocket].id === "" || null) {
-                    id = createID();
-                    users[clientToServerWebsocket].id = id;
-                } else {
-                    id = users[clientToServerWebsocket].id;
-                }
-                sendTo(users[clientToServerWebsocket].clientConnection, {
-                    type: "requestedId",
-                    id,
-                });
+                // let id = "";
+                // if (users[clientToServerWebsocket].id === "" || null) {
+                //     id = createID();
+                //     users[clientToServerWebsocket].id = id;
+                // } else {
+                //     id = users[clientToServerWebsocket].id;
+                // }
+                // sendTo(users[clientToServerWebsocket].clientConnection, {
+                //     type: "requestedId",
+                //     id,
+                // });
         }
     });
     clientToServerWebsocket.on("close", () => {
-        delete users[clientToServerWebsocket.username];
+        // delete users[clientToServerWebsocket.username];
         clientToServerWebsocket.close();
     });
 });

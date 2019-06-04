@@ -32,7 +32,7 @@ var NetworkConnectionManager = /** @class */ (function () {
                 var data = JSON.parse(msg.data);
                 switch (data.type) {
                     case "login":
-                        _this.handleLogin(data.success);
+                        _this.handleLogin(data);
                         break;
                     case "offer":
                         _this.handleOffer(data.offer, data.username);
@@ -43,14 +43,8 @@ var NetworkConnectionManager = /** @class */ (function () {
                     case "candidate":
                         _this.handleCandidate(data.candidate);
                         break;
-                    case "requestedId":
-                        _this.handleRequestedId(data.id);
                 }
             });
-        };
-        this.handleRequestedId = function (id) {
-            _this.id = id;
-            console.log("Id received: " + id);
         };
         this.handleCandidate = function (candidate) {
             _this.connection.addIceCandidate(new RTCIceCandidate(candidate));
@@ -73,10 +67,9 @@ var NetworkConnectionManager = /** @class */ (function () {
                 console.error(error);
             });
         };
-        this.handleLogin = function (loginSuccess) {
-            if (loginSuccess) {
-                console.log("Login succesfully done");
-                _this.requestId();
+        this.handleLogin = function (loginData) {
+            if (loginData.success) {
+                _this.id = loginData.id;
                 _this.createRTCConnection();
                 console.log("COnnection at Login: ", _this.connection);
             }
@@ -165,12 +158,6 @@ var NetworkConnectionManager = /** @class */ (function () {
             return;
         }
         this.addWsEventListeners();
-    };
-    NetworkConnectionManager.prototype.requestId = function () {
-        console.log("Requesting ID");
-        this.sendMessage({
-            type: "idRequest"
-        });
     };
     return NetworkConnectionManager;
 }());

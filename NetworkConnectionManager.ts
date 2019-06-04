@@ -18,7 +18,7 @@ export class NetworkConnectionManager {
         this.addUiListeners();
 
     }
-//#region test
+    //#region test
     public addUiListeners = (): void => {
         UiElementHandler.signaling_submit.addEventListener("click", this.establishConnectionToSignalingServer);
         UiElementHandler.login_button.addEventListener("click", this.loginLogic);
@@ -26,8 +26,7 @@ export class NetworkConnectionManager {
         UiElementHandler.sendMsgButton.addEventListener("click", this.sendMessageToUser);
     }
 
-    public establishConnectionToSignalingServer = (): void =>
-    {
+    public establishConnectionToSignalingServer = (): void => {
         let signalingServerUrl = this.defaultSignalingServerUrl;
         this.createWebsocketForSignaling(signalingServerUrl);
     }
@@ -40,7 +39,7 @@ export class NetworkConnectionManager {
         this.ws.addEventListener("error", (err) => {
             console.error(err);
         });
-//#endregion
+        //#endregion
         this.ws.addEventListener("message", (msg) => {
             console.log("Got message", msg.data);
 
@@ -48,7 +47,7 @@ export class NetworkConnectionManager {
 
             switch (data.type) {
                 case "login":
-                    this.handleLogin(data.success);
+                    this.handleLogin(data);
                     break;
 
                 case "offer":
@@ -60,8 +59,6 @@ export class NetworkConnectionManager {
                 case "candidate":
                     this.handleCandidate(data.candidate);
                     break;
-                case "requestedId":
-                    this.handleRequestedId(data.id);
             }
         });
     }
@@ -74,18 +71,6 @@ export class NetworkConnectionManager {
             return;
         }
         this.addWsEventListeners();
-    }
-
-    public requestId() {
-        console.log("Requesting ID");
-        this.sendMessage({
-            type: "idRequest",
-        });
-    }
-    public handleRequestedId = (id: string): void =>
-    {   
-        this.id = id;
-        console.log("Id received: " + id);
     }
 
     public handleCandidate = (candidate) => {
@@ -117,10 +102,9 @@ export class NetworkConnectionManager {
 
 
 
-    public handleLogin = (loginSuccess): void => {
-        if (loginSuccess) {
-            console.log("Login succesfully done");
-            this.requestId();
+    public handleLogin = (loginData): void => {
+        if (loginData.success) {
+            this.id = loginData.id;
             this.createRTCConnection();
             console.log("COnnection at Login: ", this.connection);
         } else {
