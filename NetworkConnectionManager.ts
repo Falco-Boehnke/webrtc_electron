@@ -75,7 +75,7 @@ export class NetworkConnectionManager {
     public handleCandidate = (candidate) => {
         console.log("Candidate Handling");
         this.connection.addIceCandidate(new RTCIceCandidate(candidate));
-        console.log("Candidate handling crashed");
+
     }
 
     public handleAnswer = (answer) => {
@@ -111,13 +111,14 @@ export class NetworkConnectionManager {
             console.log("COnnection at Login: ", this.connection);
         } else {
             console.log("Login failed, username taken");
+            return;
         }
     }
 
     public loginLogic = (event): void => {
         this.username = UiElementHandler.login_nameInput.value;
         console.log("Inputed username: " + this.username);
-        if (this.username.length < 0) {
+        if (this.username.length <= 0) {
             console.log("Please enter username");
             return;
         }
@@ -146,19 +147,22 @@ export class NetworkConnectionManager {
             });
         };
 
-        this.peerConnection.onmessage = (event) => {
-            console.log("Received message from other peer:", event.data);
-            document.getElementById("chatbox").innerHTML += "<br>" + event.data;
-        };
-
         this.connection.onicecandidate = (event) => {
+            console.log("OnIceCandidate fired");
             if (event.candidate) {
                 this.sendMessage({
                     type: "candidate",
                     otherUsername: this.otherUsername,
                     candidate: event.candidate,
                 });
+            }else{
+                console.log("All IceCandidates sent");
             }
+        };
+
+        this.peerConnection.onmessage = (event) => {
+            console.log("Received message from other peer:", event.data);
+            document.getElementById("chatbox").innerHTML += "<br>" + event.data;
         };
     }
 
@@ -169,23 +173,38 @@ export class NetworkConnectionManager {
             return;
         }
 
-        this.otherUsername = callToUsername;
-        // create an offer
-        this.connection.createOffer(
-            (offer) => {
-                this.sendMessage({
-                    type: "offer",
-                    otherUsername: this.otherUsername,
-                    offer,
-                });
+        this.connection.createOffer().then((offer) =>{
+            return this.connection.setLocalDescription(offer);
 
-                this.connection.setLocalDescription(offer);
-            },
-            (error) => {
-                alert("Error when creating an offer");
-                console.error(error);
-            },
-        );
+        })
+        .then(() =>{
+            this.sendMessage({
+                type: "offer",
+                otherUsername: this.otherUsername,
+                offer: this.connection.localDescription,
+            });
+        })
+        .catch((error) => {
+            console.log("Connection error");
+        });
+
+        this.otherUsername = callToUsername;
+        // // create an offer
+        // this.connection.createOffer(
+        //     (offer) => {
+        //         this.sendMessage({
+        //             type: "offer",
+        //             otherUsername: this.otherUsername,
+        //             offer,
+        //         });
+                
+        //         this.connection.setLocalDescription(offer);
+        //     },
+        //     (error) => {
+        //         alert("Error when creating an offer");
+        //         console.error(error);
+        //     },
+        // );
     }
 
     public sendMessage = (message) => {

@@ -49,7 +49,6 @@ var NetworkConnectionManager = /** @class */ (function () {
         this.handleCandidate = function (candidate) {
             console.log("Candidate Handling");
             _this.connection.addIceCandidate(new RTCIceCandidate(candidate));
-            console.log("Candidate handling crashed");
         };
         this.handleAnswer = function (answer) {
             _this.connection.setRemoteDescription(new RTCSessionDescription(answer));
@@ -78,12 +77,13 @@ var NetworkConnectionManager = /** @class */ (function () {
             }
             else {
                 console.log("Login failed, username taken");
+                return;
             }
         };
         this.loginLogic = function (event) {
             _this.username = UiElementHandler_1.UiElementHandler.login_nameInput.value;
             console.log("Inputed username: " + _this.username);
-            if (_this.username.length < 0) {
+            if (_this.username.length <= 0) {
                 console.log("Please enter username");
                 return;
             }
@@ -106,11 +106,8 @@ var NetworkConnectionManager = /** @class */ (function () {
                     UiElementHandler_1.UiElementHandler.chatbox.innerHTML += "\n" + _this.otherUsername + ": " + event.data;
                 });
             };
-            _this.peerConnection.onmessage = function (event) {
-                console.log("Received message from other peer:", event.data);
-                document.getElementById("chatbox").innerHTML += "<br>" + event.data;
-            };
             _this.connection.onicecandidate = function (event) {
+                console.log("OnIceCandidate fired");
                 if (event.candidate) {
                     _this.sendMessage({
                         type: "candidate",
@@ -118,6 +115,13 @@ var NetworkConnectionManager = /** @class */ (function () {
                         candidate: event.candidate
                     });
                 }
+                else {
+                    console.log("All IceCandidates sent");
+                }
+            };
+            _this.peerConnection.onmessage = function (event) {
+                console.log("Received message from other peer:", event.data);
+                document.getElementById("chatbox").innerHTML += "<br>" + event.data;
             };
         };
         this.connectToUser = function () {
@@ -126,19 +130,34 @@ var NetworkConnectionManager = /** @class */ (function () {
                 alert("Enter a username 😉");
                 return;
             }
-            _this.otherUsername = callToUsername;
-            // create an offer
-            _this.connection.createOffer(function (offer) {
+            _this.connection.createOffer().then(function (offer) {
+                return _this.connection.setLocalDescription(offer);
+            })
+                .then(function () {
                 _this.sendMessage({
                     type: "offer",
                     otherUsername: _this.otherUsername,
-                    offer: offer
+                    offer: _this.connection.localDescription
                 });
-                _this.connection.setLocalDescription(offer);
-            }, function (error) {
-                alert("Error when creating an offer");
-                console.error(error);
+            })["catch"](function (error) {
+                console.log("Connection error");
             });
+            _this.otherUsername = callToUsername;
+            // // create an offer
+            // this.connection.createOffer(
+            //     (offer) => {
+            //         this.sendMessage({
+            //             type: "offer",
+            //             otherUsername: this.otherUsername,
+            //             offer,
+            //         });
+            //         this.connection.setLocalDescription(offer);
+            //     },
+            //     (error) => {
+            //         alert("Error when creating an offer");
+            //         console.error(error);
+            //     },
+            // );
         };
         this.sendMessage = function (message) {
             _this.ws.send(JSON.stringify(message));
