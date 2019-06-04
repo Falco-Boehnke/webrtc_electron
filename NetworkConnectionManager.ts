@@ -49,7 +49,6 @@ export class NetworkConnectionManager {
                 case "login":
                     this.handleLogin(data);
                     break;
-
                 case "offer":
                     this.handleOffer(data.offer, data.username);
                     break;
@@ -74,11 +73,14 @@ export class NetworkConnectionManager {
     }
 
     public handleCandidate = (candidate) => {
+        console.log("Candidate Handling");
         this.connection.addIceCandidate(new RTCIceCandidate(candidate));
+        console.log("Candidate handling crashed");
     }
 
     public handleAnswer = (answer) => {
         this.connection.setRemoteDescription(new RTCSessionDescription(answer));
+        console.log("Answer has been handled and remotedescirption has been set");
     }
 
     public handleOffer = (offer, username): void => {

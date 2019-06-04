@@ -47,10 +47,13 @@ var NetworkConnectionManager = /** @class */ (function () {
             });
         };
         this.handleCandidate = function (candidate) {
+            console.log("Candidate Handling");
             _this.connection.addIceCandidate(new RTCIceCandidate(candidate));
+            console.log("Candidate handling crashed");
         };
         this.handleAnswer = function (answer) {
             _this.connection.setRemoteDescription(new RTCSessionDescription(answer));
+            console.log("Answer has been handled and remotedescirption has been set");
         };
         this.handleOffer = function (offer, username) {
             _this.otherUsername = username;

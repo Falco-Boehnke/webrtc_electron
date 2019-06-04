@@ -8,11 +8,12 @@ export class Client {
     public connectedRoom: ServerRoom;
 
     constructor();
-    constructor(websocketConnection: WebSocket);
-    constructor(websocketConnection?: WebSocket, uniqueClientId?: string, loginName?: string, connectedToRoom?: ServerRoom) 
-    {
+    constructor(websocketConnection?: WebSocket,
+                uniqueClientId?: string,
+                loginName?: string,
+                connectedToRoom?: ServerRoom) {
         this.clientConnection = websocketConnection || null;
-        this.id = uniqueClientId || "" ;
+        this.id = uniqueClientId || "";
         this.userName = loginName || "";
         this.connectedRoom = connectedToRoom || null;
     }
