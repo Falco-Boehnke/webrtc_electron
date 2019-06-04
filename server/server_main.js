@@ -20,50 +20,13 @@ wss.on("connection", function (clientToServerWebsocket) {
             console.error("Invalid JSON", error);
             data = {};
         }
-        var otherUser = null;
         switch (data.type) {
             case "login":
-                var usernameTaken = false;
-                for (var currentClient in usersCollection) {
-                    if (usersCollection.hasOwnProperty(currentClient)) {
-                        if (data.username === usersCollection[currentClient].userName) {
-                            sendTo(clientToServerWebsocket, { type: "login", success: false });
-                            usernameTaken = true;
-                            console.log("UsernameTaken");
-                        }
-                    }
-                }
-                if (!usernameTaken) {
-                    var relevantClient = void 0;
-                    for (var currentClient in usersCollection) {
-                        if (usersCollection.hasOwnProperty(currentClient)) {
-                            if (clientToServerWebsocket === usersCollection[currentClient].clientConnection) {
-                                usersCollection[currentClient].userName = data.username;
-                                console.log("Added username to collection");
-                                console.log("All connected users", usersCollection);
-                                sendTo(clientToServerWebsocket, {
-                                    type: "login",
-                                    success: true,
-                                    id: usersCollection[currentClient].id
-                                });
-                            }
-                        }
-                    }
-                }
+                serverHandleLogin(clientToServerWebsocket, data);
                 break;
             case "offer":
-                console.log("Sending offer to: ", data.otherUsername);
-                for (var currentClient in usersCollection) {
-                    if (usersCollection.hasOwnProperty(currentClient)) {
-                        console.log("Testlog otherusername" + data.otherUsername);
-                        console.log("Testlot usercollection ", usersCollection[currentClient]);
-                        console.log("Testslot bool" + data.otherUsername === usersCollection[currentClient].userName);
-                        if (data.otherUsername === usersCollection[currentClient].userName) {
-                            console.log("User for offer found", currentClient);
-                            // otherUser = users[currentClient];
-                        }
-                    }
-                }
+                var requestedClient = searchForPropertyValueInCollection(data.otherUsername, "userName", usersCollection);
+                console.log("Sending offer to: ", requestedClient);
                 //#region backup
                 // for (let userWithThatName in users) {
                 //     if (users.hasOwnProperty(userWithThatName)) {
@@ -75,12 +38,12 @@ wss.on("connection", function (clientToServerWebsocket) {
                 //     }
                 // }
                 //#endregion
-                if (otherUser != null) {
-                    clientToServerWebsocket.otherUsername = data.otherUsername;
-                    sendTo(otherUser.clientConnection, {
+                if (requestedClient != null) {
+                    console.log("User for offer found", requestedClient);
+                    sendTo(requestedClient.clientConnection, {
                         type: "offer",
                         offer: data.offer,
-                        username: clientToServerWebsocket.username
+                        username: requestedClient.userName
                     });
                 }
                 else {
@@ -89,45 +52,27 @@ wss.on("connection", function (clientToServerWebsocket) {
                 break;
             case "answer":
                 console.log("Sending answer to: ", data.otherUsername);
-                // if (users[data.otherUsername] != null) {
-                //     clientToServerWebsocket.otherUsername = data.otherUsername;
-                //     sendTo(users[data.otherUsername], {
-                //         type: "answer",
-                //         answer: data.answer,
-                //     });
-                // }
+                var clientToSendAnswerTo = searchForPropertyValueInCollection(data.otherUsername, "userName", usersCollection);
+                if (clientToSendAnswerTo != null) {
+                    sendTo(clientToSendAnswerTo.clientConnection, {
+                        type: "answer",
+                        answer: data.answer
+                    });
+                }
                 break;
             case "candidate":
                 console.log("Sending candidate to:", data.otherUsername);
-                // if (users[data.otherUsername] != null) {
-                //     sendTo(users[data.otherUsername], {
+                // let clientToShareCandidatesWith = searchForPropertyValueInCollection
+                //     (data.otherUsername,
+                //         "userName",
+                //         usersCollection);
+                // if (clientToShareCandidatesWith != null) {
+                //     sendTo(clientToShareCandidatesWith.clientConnection, {
                 //         type: "candidate",
                 //         candidate: data.candidate,
                 //     });
                 // }
-                // for (const userWithThatName in users) {
-                //     if (users.hasOwnProperty(userWithThatName)) {
-                //         console.log("Also Other Username: " + users[userWithThatName].userName);
-                //         if (users[userWithThatName].userName === data.otherUsername) {
-                //             otherUser = users[userWithThatName];
-                //             console.log("User " + users[userWithThatName].userName + " exists");
-                //             return;
-                //         }
-                //     }
-                // }
                 break;
-            case "idRequest":
-            // let id = "";
-            // if (users[clientToServerWebsocket].id === "" || null) {
-            //     id = createID();
-            //     users[clientToServerWebsocket].id = id;
-            // } else {
-            //     id = users[clientToServerWebsocket].id;
-            // }
-            // sendTo(users[clientToServerWebsocket].clientConnection, {
-            //     type: "requestedId",
-            //     id,
-            // });
         }
     });
     clientToServerWebsocket.on("close", function () {
@@ -142,4 +87,38 @@ function createID() {
 }
 function sendTo(connection, message) {
     connection.send(JSON.stringify(message));
+}
+// Helper function for searching through a collection, finding objects by key and value, returning
+// Object that has that value
+function searchForPropertyValueInCollection(propertyValue, key, collectionToSearch) {
+    for (var propertyObject in collectionToSearch) {
+        if (usersCollection.hasOwnProperty(propertyObject)) {
+            var objectToSearchThrough = collectionToSearch[propertyObject];
+            if (objectToSearchThrough[key] === propertyValue) {
+                return objectToSearchThrough;
+            }
+        }
+    }
+    return null;
+}
+function serverHandleLogin(websocketConnection, messageData) {
+    var usernameTaken = false;
+    usernameTaken = searchForPropertyValueInCollection(messageData.username, "userName", usersCollection) != null;
+    if (!usernameTaken) {
+        var associatedWebsocketConnectionClient = searchForPropertyValueInCollection(websocketConnection, "clientConnection", usersCollection);
+        if (associatedWebsocketConnectionClient != null) {
+            associatedWebsocketConnectionClient.userName = messageData.username;
+            console.log("Changed name of client object");
+            sendTo(websocketConnection, {
+                type: "login",
+                success: true,
+                id: associatedWebsocketConnectionClient.id
+            });
+        }
+    }
+    else {
+        sendTo(websocketConnection, { type: "login", success: false });
+        usernameTaken = true;
+        console.log("UsernameTaken");
+    }
 }
