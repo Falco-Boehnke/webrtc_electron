@@ -1,195 +1,176 @@
 "use strict";
 exports.__esModule = true;
-var UiElementHandler_1 = require("./UiElementHandler");
+var UiElementHandler_1 = require("./DataObjects/UiElementHandler");
 var NetworkConnectionManager = /** @class */ (function () {
     function NetworkConnectionManager() {
         var _this = this;
-        this.sendChatMessageToUsers = function () {
-            console.log("Why dis called");
-            var val = UiElementHandler_1.UiElementHandler.msgInput.textContent;
-            UiElementHandler_1.UiElementHandler.chatbox.textContent += " : " + val + "<br />";
-            console.log("Datachannel send: " + _this.dataChannel);
-            _this.dataChannel.send(val);
-            // sending a message to a connected peer
-            console.log();
-            UiElementHandler_1.UiElementHandler.msgInput.textContent = "";
+        this.defaultSignalingServerUrl = "localhost:8080";
+        this.configuration = {
+            iceServers: [{ url: "stun:stun2.1.google.com:19302" }]
         };
-        this.getUrlAndCreateConnection = function () {
-            var url = UiElementHandler_1.UiElementHandler.signaling_url.value;
-            console.log(url);
-            _this.establishWebsocketConnection(url);
+        //#region test
+        this.addUiListeners = function () {
+            UiElementHandler_1.UiElementHandler.signaling_submit.addEventListener("click", _this.establishConnectionToSignalingServer);
+            UiElementHandler_1.UiElementHandler.login_button.addEventListener("click", _this.loginLogic);
+            UiElementHandler_1.UiElementHandler.connectToUserButton.addEventListener("click", _this.connectToUser);
+            UiElementHandler_1.UiElementHandler.sendMsgButton.addEventListener("click", _this.sendMessageToUser);
         };
-        this.establishWebsocketConnection = function (url) {
-            console.log("Attemtping to connect to server: ");
-            _this.signalingConn = new WebSocket("ws://" + url);
-            ///////////////////////////////
-            ///// Event handling block/////
-            _this.signalingConn.addEventListener("open", function () {
+        this.establishConnectionToSignalingServer = function () {
+            var signalingServerUrl = _this.defaultSignalingServerUrl;
+            _this.createWebsocketForSignaling(signalingServerUrl);
+        };
+        this.addWsEventListeners = function () {
+            _this.ws.addEventListener("open", function () {
                 console.log("Connected to the signaling server");
             });
-            // Getting message from signaling server
-            console.log("Context: " + _this);
-            _this.signalingConn.addEventListener("message", _this.switchMessageHandlingDependingOnType);
-            _this.signalingConn.addEventListener("error", function (err) {
-                console.log("Error happened" + err);
+            _this.ws.addEventListener("error", function (err) {
+                console.error(err);
             });
-        };
-        this.switchMessageHandlingDependingOnType = function (msg) {
-            console.log("Got message" + msg.data);
-            var data = JSON.parse(msg.data);
-            switch (data.type) {
-                case "login":
-                    _this.handleLogin(data.success);
-                    break;
-                case "offer":
-                    _this.handleOffer(data.offer, data.userName);
-                    break;
-                case "answer":
-                    _this.handleAnswer(data.answer);
-                    break;
-                // When remote peer gives us ice iceCandidates
-                case "iceCandidate":
-                    _this.handleIceCandidate(data.Candidate);
-                    break;
-                case "leave":
-                    _this.handleLeave();
-                    break;
-                default:
-                    break;
-            }
-        };
-        this.userNameAndSend = function () {
-            console.log("FUCK");
-            var username = UiElementHandler_1.UiElementHandler.login_nameInput.value;
-            console.log("Sending Username: " + username);
-            _this.send({
-                type: "login",
-                userName: username
-            });
-        };
-        UiElementHandler_1.UiElementHandler.getAllUiElements();
-        this.addEventListenersToUiElements();
-    }
-    NetworkConnectionManager.prototype.addEventListenersToUiElements = function () {
-        UiElementHandler_1.UiElementHandler.sendMsgButton.addEventListener("click", this.sendChatMessageToUsers);
-        UiElementHandler_1.UiElementHandler.signaling_submit.addEventListener("click", this.getUrlAndCreateConnection);
-        UiElementHandler_1.UiElementHandler.login_button.addEventListener("click", this.userNameAndSend);
-        UiElementHandler_1.UiElementHandler.connectToUserButton.addEventListener("click", this.initiateCallToUser);
-        UiElementHandler_1.UiElementHandler.disconnectButton.addEventListener("click", this.disconnectFromChat);
-    };
-    NetworkConnectionManager.prototype.disconnectFromChat = function () {
-        this.send({
-            type: "leave"
-        });
-        this.handleLeave();
-    };
-    // alias for sending JSON encoded messages
-    NetworkConnectionManager.prototype.send = function (message) {
-        // attach the other peer username to our messages
-        if (this.connectedUser) {
-            message.userName = this.connectedUser;
-        }
-        this.signalingConn.send(JSON.stringify(message));
-    };
-    NetworkConnectionManager.prototype.handleLogin = function (success) {
-        var _this = this;
-        if (success) {
-            console.log("Username taken, refresh");
-            return;
-        }
-        else {
-            // Google offers a public Stun, which is good because that means
-            // we don't need to create a Stun server for Fudge
-            var configuration = {
-                iceServers: [{ url: "stun:stun2.1.google.com:19302" }]
-            };
-            console.log("Connection config: " + configuration);
-            this.localConn = new RTCPeerConnection();
-            this.localConn.iceServers = configuration;
-            console.log(this.localConn);
-            // Handling the ice better than GoT
-            this.localConn.addEventListener("icecandidate", function (event) {
-                console.log("IceCandidate event called");
-                if (event.iceCandidate) {
-                    _this.send({
-                        Candidate: event.iceCandidate,
-                        type: "iceCandidate"
-                    });
+            //#endregion
+            _this.ws.addEventListener("message", function (msg) {
+                console.log("Got message", msg.data);
+                var data = JSON.parse(msg.data);
+                switch (data.type) {
+                    case "login":
+                        _this.handleLogin(data.success);
+                        break;
+                    case "offer":
+                        _this.handleOffer(data.offer, data.username);
+                        break;
+                    case "answer":
+                        _this.handleAnswer(data.answer);
+                        break;
+                    case "candidate":
+                        _this.handleCandidate(data.candidate);
+                        break;
+                    case "requestedId":
+                        _this.handleRequestedId(data.id);
                 }
             });
-            this.localConn.addEventListener("iceconnectionstatechange", function (event) {
-                console.log(_this.localConn.iceConnectionState);
+        };
+        this.handleRequestedId = function (id) {
+            _this.id = id;
+            console.log("Id received: " + id);
+        };
+        this.handleCandidate = function (candidate) {
+            _this.connection.addIceCandidate(new RTCIceCandidate(candidate));
+        };
+        this.handleAnswer = function (answer) {
+            _this.connection.setRemoteDescription(new RTCSessionDescription(answer));
+        };
+        this.handleOffer = function (offer, username) {
+            _this.otherUsername = username;
+            _this.connection.setRemoteDescription(new RTCSessionDescription(offer));
+            _this.connection.createAnswer(function (answer) {
+                _this.connection.setLocalDescription(answer);
+                _this.sendMessage({
+                    type: "answer",
+                    otherUsername: _this.otherUsername,
+                    answer: answer
+                });
+            }, function (error) {
+                alert("Error when creating an answer");
+                console.error(error);
             });
-            this.localConn.addEventListener("datachannel", function (event) {
+        };
+        this.handleLogin = function (loginSuccess) {
+            if (loginSuccess) {
+                console.log("Login succesfully done");
+                _this.requestId();
+                _this.createRTCConnection();
+                console.log("COnnection at Login: ", _this.connection);
+            }
+            else {
+                console.log("Login failed, username taken");
+            }
+        };
+        this.loginLogic = function (event) {
+            _this.username = UiElementHandler_1.UiElementHandler.login_nameInput.value;
+            console.log("Inputed username: " + _this.username);
+            if (_this.username.length < 0) {
+                console.log("Please enter username");
+                return;
+            }
+            _this.sendMessage({
+                type: "login",
+                username: _this.username
+            });
+        };
+        this.createRTCConnection = function () {
+            _this.connection = new RTCPeerConnection();
+            _this.connection.configuration = _this.configuration;
+            _this.peerConnection = _this.connection.createDataChannel("testChannel");
+            _this.connection.ondatachannel = function (event) {
                 console.log("Data channel is created!");
                 event.channel.addEventListener("open", function () {
                     console.log("Data channel is open and ready to be used.");
                 });
-            });
-        }
-    };
-    NetworkConnectionManager.prototype.openDataChannel = function () {
-        var dataChannelOptions = {
-            reliable: true
-        };
-        this.dataChannel = this.localConn.createDataChannel("myDataChannel", dataChannelOptions);
-        this.dataChannel.addEventListener("error", function (err) {
-            console.log("Error:", err);
-        });
-        this.dataChannel.addEventListener("message", function (event) {
-            console.log("new message received");
-            console.log("Got message:", event.data);
-        });
-        this.dataChannel.addEventListener("open", function () {
-            console.log("channel opened");
-        });
-    };
-    NetworkConnectionManager.prototype.initiateCallToUser = function () {
-        console.log("Initiating call to userName" + document.getElementById("connectToUsername").textContent);
-        var callToUsername = document.getElementById("connectToUsername").textContent;
-        if (callToUsername.length > 0) {
-            this.connectedUser = callToUsername;
-            this.localConn.createOffer(function (offer) {
-                this.send({
-                    offer: offer,
-                    type: "offer"
+                event.channel.addEventListener("message", function (event) {
+                    console.log("Received message: " + event.data);
+                    UiElementHandler_1.UiElementHandler.chatbox.innerHTML += "\n" + _this.otherUsername + ": " + event.data;
                 });
-                this.localConn.setLocalDescription(offer);
+            };
+            _this.peerConnection.onmessage = function (event) {
+                console.log("Received message from other peer:", event.data);
+                document.getElementById("chatbox").innerHTML += "<br>" + event.data;
+            };
+            _this.connection.onicecandidate = function (event) {
+                if (event.candidate) {
+                    _this.sendMessage({
+                        type: "candidate",
+                        otherUsername: _this.otherUsername,
+                        candidate: event.candidate
+                    });
+                }
+            };
+        };
+        this.connectToUser = function () {
+            var callToUsername = UiElementHandler_1.UiElementHandler.usernameToConnectTo.value;
+            if (callToUsername.length === 0) {
+                alert("Enter a username 😉");
+                return;
+            }
+            _this.otherUsername = callToUsername;
+            // create an offer
+            _this.connection.createOffer(function (offer) {
+                _this.sendMessage({
+                    type: "offer",
+                    otherUsername: _this.otherUsername,
+                    offer: offer
+                });
+                _this.connection.setLocalDescription(offer);
             }, function (error) {
-                console.error("Error when creating offer" + error);
+                alert("Error when creating an offer");
+                console.error(error);
             });
-            this.openDataChannel();
+        };
+        this.sendMessage = function (message) {
+            _this.ws.send(JSON.stringify(message));
+        };
+        this.sendMessageToUser = function () {
+            // const messageField =  document.getElementById("msgInput") as HTMLInputElement;
+            // const message = messageField.value;
+            var message = UiElementHandler_1.UiElementHandler.msgInput.value;
+            UiElementHandler_1.UiElementHandler.chatbox.innerHTML += "\n" + _this.username + ": " + message;
+            _this.peerConnection.send(message);
+        };
+        this.addUiListeners();
+    }
+    NetworkConnectionManager.prototype.createWebsocketForSignaling = function (signalingUrl) {
+        try {
+            this.ws = new WebSocket("ws://" + signalingUrl);
         }
+        catch (error) {
+            console.error("Signaling-Server Verbindungsfehler. Serverstatus prüfen, URL überprüfen");
+            return;
+        }
+        this.addWsEventListeners();
     };
-    // when somebody sends us an offer
-    NetworkConnectionManager.prototype.handleOffer = function (offer, userName) {
-        var _this = this;
-        console.log("Handling received offer: " + offer + " " + userName);
-        this.connectedUser = userName;
-        this.localConn.setRemoteDescription(new RTCSessionDescription(offer));
-        // create an answer to an offer
-        this.localConn.createAnswer(function (answer) {
-            _this.localConn.setLocalDescription(answer);
-            _this.send({
-                answer: answer,
-                type: "answer"
-            });
-        }, function (error) {
-            console.error("Error creating answer: " + error);
+    NetworkConnectionManager.prototype.requestId = function () {
+        console.log("Requesting ID");
+        this.sendMessage({
+            type: "idRequest"
         });
-    };
-    // What to do with an answer
-    NetworkConnectionManager.prototype.handleAnswer = function (answer) {
-        console.log("Handling Answer");
-        this.localConn.setRemoteDescription(new RTCSessionDescription(answer));
-    };
-    NetworkConnectionManager.prototype.handleIceCandidate = function (Candidate) {
-        this.localConn.addIceCandidate(new RTCIceCandidate(Candidate));
-    };
-    NetworkConnectionManager.prototype.handleLeave = function () {
-        this.connectedUser = null;
-        this.localConn.close();
-        this.localConn.oniceCandidate = null;
     };
     return NetworkConnectionManager;
 }());

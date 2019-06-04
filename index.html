@@ -9,10 +9,7 @@
   <h1>Realtime communication with WebRTC</h1>
 
   <div>
-    Enter Signaling server URL:
-    <input id="signaling_uri" type="text" value="localhost:9090"></input>
-    <button id="submit_button">Connect</button>
-    <button id="test_button">test</button>
+    <button id="submit_button">Connect to Signaling Server</button>
   </div>
   <div>
     <input id="login_name" type="text"></input>
@@ -28,6 +25,8 @@
     <input id="msgInput" type="text"></input>
     <button id="sendMessage">Send</button>
   </div>
+
+  <input onchange="addFiles(this.files)" type="file" id="files" name="files[]" multiple>
 
   <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
 

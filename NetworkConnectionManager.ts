@@ -1,246 +1,217 @@
-import { UiElementHandler } from "./UiElementHandler";
+import { UiElementHandler } from "./DataObjects/UiElementHandler";
 
 export class NetworkConnectionManager {
-    // Researched some ideas here https://www.tutorialspoint.com/webrtc/webrtc_text_demo.htm
-    public userName;
-    public connectedUser;
-    public signalingConn;
-    public localConn;
-    public dataChannel;
+    public ws;
+    public username;
+    public id;
+    public connection;
+    public otherUsername;
+    public peerConnection;
+
+    public defaultSignalingServerUrl = "localhost:8080";
+    public configuration = {
+        iceServers: [{ url: "stun:stun2.1.google.com:19302" }],
+    };
 
     constructor() {
 
-        UiElementHandler.getAllUiElements();
-        this.addEventListenersToUiElements();
+        this.addUiListeners();
+
+    }
+//#region test
+    public addUiListeners = (): void => {
+        UiElementHandler.signaling_submit.addEventListener("click", this.establishConnectionToSignalingServer);
+        UiElementHandler.login_button.addEventListener("click", this.loginLogic);
+        UiElementHandler.connectToUserButton.addEventListener("click", this.connectToUser);
+        UiElementHandler.sendMsgButton.addEventListener("click", this.sendMessageToUser);
     }
 
-    public addEventListenersToUiElements() {
-        UiElementHandler.sendMsgButton.addEventListener("click", this.sendChatMessageToUsers);
-        UiElementHandler.signaling_submit.addEventListener("click", this.getUrlAndCreateConnection);
-        UiElementHandler.login_button.addEventListener("click", this.userNameAndSend);
-        UiElementHandler.connectToUserButton.addEventListener("click", this.initiateCallToUser);
-        UiElementHandler.disconnectButton.addEventListener("click", this.disconnectFromChat);
+    public establishConnectionToSignalingServer = (): void =>
+    {
+        let signalingServerUrl = this.defaultSignalingServerUrl;
+        this.createWebsocketForSignaling(signalingServerUrl);
     }
 
-    public disconnectFromChat() {
-        this.send({
-            type: "leave",
+    public addWsEventListeners = (): void => {
+        this.ws.addEventListener("open", () => {
+            console.log("Connected to the signaling server");
         });
-        this.handleLeave();
+
+        this.ws.addEventListener("error", (err) => {
+            console.error(err);
+        });
+//#endregion
+        this.ws.addEventListener("message", (msg) => {
+            console.log("Got message", msg.data);
+
+            const data = JSON.parse(msg.data);
+
+            switch (data.type) {
+                case "login":
+                    this.handleLogin(data.success);
+                    break;
+
+                case "offer":
+                    this.handleOffer(data.offer, data.username);
+                    break;
+                case "answer":
+                    this.handleAnswer(data.answer);
+                    break;
+                case "candidate":
+                    this.handleCandidate(data.candidate);
+                    break;
+                case "requestedId":
+                    this.handleRequestedId(data.id);
+            }
+        });
     }
 
-    public sendChatMessageToUsers = (): void => {
-        console.log("Why dis called");
-        const val = UiElementHandler.msgInput.textContent;
-        UiElementHandler.chatbox.textContent += " : " + val + "<br />";
-
-        console.log("Datachannel send: " + this.dataChannel);
-        this.dataChannel.send(val);
-        // sending a message to a connected peer
-        console.log();
-        UiElementHandler.msgInput.textContent = "";
+    public createWebsocketForSignaling(signalingUrl: string) {
+        try {
+            this.ws = new WebSocket("ws://" + signalingUrl);
+        } catch (error) {
+            console.error("Signaling-Server Verbindungsfehler. Serverstatus prüfen, URL überprüfen");
+            return;
+        }
+        this.addWsEventListeners();
     }
 
-    public getUrlAndCreateConnection = (): void => {
-        const url = UiElementHandler.signaling_url.value;
-        console.log(url);
-        this.establishWebsocketConnection(url);
+    public requestId() {
+        console.log("Requesting ID");
+        this.sendMessage({
+            type: "idRequest",
+        });
+    }
+    public handleRequestedId = (id: string): void =>
+    {   
+        this.id = id;
+        console.log("Id received: " + id);
     }
 
-    public establishWebsocketConnection = (url): void => {
-        console.log("Attemtping to connect to server: ");
-        this.signalingConn = new WebSocket("ws://" + url);
+    public handleCandidate = (candidate) => {
+        this.connection.addIceCandidate(new RTCIceCandidate(candidate));
+    }
 
-        ///////////////////////////////
-        ///// Event handling block/////
-        this.signalingConn.addEventListener("open",
-            () => {
-                console.log("Connected to the signaling server");
+    public handleAnswer = (answer) => {
+        this.connection.setRemoteDescription(new RTCSessionDescription(answer));
+    }
+
+    public handleOffer = (offer, username): void => {
+        this.otherUsername = username;
+        this.connection.setRemoteDescription(new RTCSessionDescription(offer));
+        this.connection.createAnswer(
+            (answer) => {
+                this.connection.setLocalDescription(answer);
+                this.sendMessage({
+                    type: "answer",
+                    otherUsername: this.otherUsername,
+                    answer,
+                });
+            },
+            (error) => {
+                alert("Error when creating an answer");
+                console.error(error);
             },
         );
-
-        // Getting message from signaling server
-        console.log("Context: " + this);
-        this.signalingConn.addEventListener("message", this.switchMessageHandlingDependingOnType);
-
-        this.signalingConn.addEventListener("error", (err) => {
-            console.log("Error happened" + err);
-        });
-    }
-
-    public switchMessageHandlingDependingOnType = (msg): void => {
-        console.log("Got message" + msg.data);
-        const data = JSON.parse(msg.data);
-
-        switch (data.type) {
-            case "login":
-                this.handleLogin(data.success);
-                break;
-
-            case "offer":
-                this.handleOffer(data.offer, data.userName);
-                break;
-
-            case "answer":
-                this.handleAnswer(data.answer);
-                break;
-            // When remote peer gives us ice iceCandidates
-            case "iceCandidate":
-                this.handleIceCandidate(data.Candidate);
-                break;
-
-            case "leave":
-                this.handleLeave();
-                break;
-
-            default:
-                break;
-        }
     }
 
 
-    // alias for sending JSON encoded messages
-    public send(message) {
 
-        // attach the other peer username to our messages
-        if (this.connectedUser) {
-            message.userName = this.connectedUser;
-        }
-
-        this.signalingConn.send(JSON.stringify(message));
-    }
-
-    public userNameAndSend = (): void => {
-        console.log("FUCK");
-        const username = UiElementHandler.login_nameInput.value;
-        console.log("Sending Username: " + username);
-        this.send({
-            type: "login",
-            userName: username,
-        });
-    }
-
-    public handleLogin(success) {
-        if (success) {
-            console.log("Username taken, refresh");
-            return;
+    public handleLogin = (loginSuccess): void => {
+        if (loginSuccess) {
+            console.log("Login succesfully done");
+            this.requestId();
+            this.createRTCConnection();
+            console.log("COnnection at Login: ", this.connection);
         } else {
-
-            // Google offers a public Stun, which is good because that means
-            // we don't need to create a Stun server for Fudge
-            const configuration = {
-                iceServers: [{ url: "stun:stun2.1.google.com:19302" }],
-            };
-            console.log("Connection config: " + configuration);
-
-            this.localConn = new RTCPeerConnection();
-            this.localConn.iceServers = configuration;
-            console.log(this.localConn);
-
-            // Handling the ice better than GoT
-            this.localConn.addEventListener("icecandidate", (event) => {
-                console.log("IceCandidate event called");
-                if (event.iceCandidate) {
-                    this.send({
-                        Candidate: event.iceCandidate,
-                        type: "iceCandidate",
-                    });
-                }
-            });
-
-            this.localConn.addEventListener("iceconnectionstatechange", (event) => {
-
-                console.log(this.localConn.iceConnectionState);
-            });
-
-            this.localConn.addEventListener("datachannel", (event) => {
-                console.log("Data channel is created!");
-
-                event.channel.addEventListener("open", () => {
-                    console.log("Data channel is open and ready to be used.");
-                });
-            });
-
+            console.log("Login failed, username taken");
         }
     }
 
-    public openDataChannel() {
+    public loginLogic = (event): void => {
+        this.username = UiElementHandler.login_nameInput.value;
+        console.log("Inputed username: " + this.username);
+        if (this.username.length < 0) {
+            console.log("Please enter username");
+            return;
+        }
 
-        const dataChannelOptions = {
-            reliable: true,
+        this.sendMessage({
+            type: "login",
+            username: this.username,
+        });
+    }
+
+    public createRTCConnection = () => {
+        this.connection = new RTCPeerConnection();
+        this.connection.configuration = this.configuration;
+
+        this.peerConnection = this.connection.createDataChannel("testChannel");
+
+        this.connection.ondatachannel = (event) => {
+            console.log("Data channel is created!");
+
+            event.channel.addEventListener("open", () => {
+                console.log("Data channel is open and ready to be used.");
+            });
+            event.channel.addEventListener("message", (event) => {
+                console.log("Received message: " + event.data);
+                UiElementHandler.chatbox.innerHTML += "\n" + this.otherUsername + ": " + event.data;
+            });
         };
-        this.dataChannel = this.localConn.createDataChannel("myDataChannel", dataChannelOptions);
 
-        this.dataChannel.addEventListener("error", (err) => {
-            console.log("Error:", err);
-        });
+        this.peerConnection.onmessage = (event) => {
+            console.log("Received message from other peer:", event.data);
+            document.getElementById("chatbox").innerHTML += "<br>" + event.data;
+        };
 
-        this.dataChannel.addEventListener("message", (event) => {
-            console.log("new message received");
-            console.log("Got message:", event.data);
-        });
-
-        this.dataChannel.addEventListener("open", () => {
-            console.log("channel opened");
-        });
+        this.connection.onicecandidate = (event) => {
+            if (event.candidate) {
+                this.sendMessage({
+                    type: "candidate",
+                    otherUsername: this.otherUsername,
+                    candidate: event.candidate,
+                });
+            }
+        };
     }
 
-    public initiateCallToUser() {
-        console.log("Initiating call to userName" + document.getElementById("connectToUsername").textContent);
-        const callToUsername = document.getElementById("connectToUsername").textContent;
+    public connectToUser = (): void => {
+        const callToUsername = UiElementHandler.usernameToConnectTo.value;
+        if (callToUsername.length === 0) {
+            alert("Enter a username 😉");
+            return;
+        }
 
-        if (callToUsername.length > 0) {
-
-            this.connectedUser = callToUsername;
-
-            this.localConn.createOffer(function(offer) {
-                this.send({
-                    offer,
+        this.otherUsername = callToUsername;
+        // create an offer
+        this.connection.createOffer(
+            (offer) => {
+                this.sendMessage({
                     type: "offer",
+                    otherUsername: this.otherUsername,
+                    offer,
                 });
 
-                this.localConn.setLocalDescription(offer);
-            }, (error) => {
-                console.error("Error when creating offer" + error);
-            });
-            this.openDataChannel();
-        }
+                this.connection.setLocalDescription(offer);
+            },
+            (error) => {
+                alert("Error when creating an offer");
+                console.error(error);
+            },
+        );
     }
 
-    // when somebody sends us an offer
-    public handleOffer(offer, userName) {
-        console.log("Handling received offer: " + offer + " " + userName);
-        this.connectedUser = userName;
-        this.localConn.setRemoteDescription(new RTCSessionDescription(offer));
-
-        // create an answer to an offer
-        this.localConn.createAnswer((answer) => {
-            this.localConn.setLocalDescription(answer);
-
-            this.send({
-                answer,
-                type: "answer",
-            });
-
-        }, (error) => {
-            console.error("Error creating answer: " + error);
-        });
+    public sendMessage = (message) => {
+        this.ws.send(JSON.stringify(message));
     }
 
-    // What to do with an answer
-    public handleAnswer(answer) {
-        console.log("Handling Answer");
-        this.localConn.setRemoteDescription(new RTCSessionDescription(answer));
-    }
-
-    public handleIceCandidate(Candidate) {
-        this.localConn.addIceCandidate(new RTCIceCandidate(Candidate));
-    }
-
-    public handleLeave() {
-        this.connectedUser = null;
-        this.localConn.close();
-        this.localConn.oniceCandidate = null;
+    public sendMessageToUser = () => {
+        // const messageField =  document.getElementById("msgInput") as HTMLInputElement;
+        // const message = messageField.value;
+        const message = UiElementHandler.msgInput.value;
+        UiElementHandler.chatbox.innerHTML += "\n" + this.username + ": " + message;
+        this.peerConnection.send(message);
     }
 
 }

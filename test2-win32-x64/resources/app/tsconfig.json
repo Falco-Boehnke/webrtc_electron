@@ -1,0 +1,18 @@
+{
+    "compileOnSave": true,
+    "compilerOptions": {
+        "target": "es6",
+        "sourceMap": true
+    },
+    "exclude": [
+        "node_modules",
+        "tslint"
+    ],
+    "files": [
+        "index.ts",
+        "renderer.ts",
+        "NetworkConnectionManager.ts",
+        "DataObjects/UiElementHandler.ts",
+
+    ]
+}
